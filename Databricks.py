@@ -3,6 +3,9 @@
 pip install snowflake-connector-python==2.5.1
 pip install "snowflake-connector-python[pandas]"
 
+"""
+ This process can be in a separate notebook to designate for worker cluster.
+"""
 def process_file(filename, colnames):
   file_location = "/FileStore/tables/" + filename
   file_type = "csv"
@@ -64,8 +67,24 @@ colnames = ('DT_YEAR','DT_MNTH','DT_DAY','DT_DAY_OF_WEEK','AR_CODE','FLIGHT_NUMB
                                    'WHEELS_ON','TAXI_IN','SCHEDULED_ARRIVAL','ARRIVAL_TIME','ARRIVAL_DELAY','DIVERTED','CANCELLED',
                                     'CANCELLATION_REASON','AIR_SYSTEM_DELAY','SECURITY_DELAY','AIRLINE_DELAY',
                                    'LATE_AIRCRAFT_DELAY','WEATHER_DELAY')
-df = process_file('partition_01.csv',colnames)
-print(df[0:4])
+
+# With the support of worker cluster, this can be implemented as multiprocessing code.
+for filename in filenames:
+   df = process_file(filename.csv,colnames)
+   df1 = df[['DT_YEAR','DT_MNTH','DT_DAY','DT_DAY_OF_WEEK']]
+   success, nchunks, nrows, _ = write_pandas(con, df1, 'DATE_PART_STG')
+   success, nchunks, nrows, _ = write_pandas(con, df, 'AIR_TRAFFIC_STG')
+  
+  """
+   1. Date from the fact file , "Partition" was moved as a separate diamension table. This way we do not need to repeat all 4 fields, instead
+   we can just have only one surrogate key field in fact table.
+   2. Either through Stored procedure in Snowflake or direct SQL query from Databricks will be used    to remove the duplicate date records from DAET_PART_STG
+   3. Move the records from DAET_PART_STG to DAET_PART and trucncate DAET_PART_STG to free-up the strogage cost.
+   4. AIR_TRAFFIC will not have the repetitive date related fields. aMove the records from AIR_TRAFFIC_STG to AIR_TRAFFIC by assoicating the Surrogage Key in DATE_PART.
+   """
+  
+   
+   
 
 
 
